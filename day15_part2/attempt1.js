@@ -28,6 +28,8 @@ const getKeyCoords = (grid) => {
 const processMoves = (moves, keyCoords) => {
     moves.forEach((move, moveIdx) => {
         let boxesToMove = [];
+        let affectedCols = new Set();
+        let nextAffectedCols = new Set();
 
         let nextCoord = step(keyCoords['robot'], move, GRID_LENGTH, GRID_HEIGHT);
         let coordString = JSON.stringify(nextCoord);
@@ -42,42 +44,103 @@ const processMoves = (moves, keyCoords) => {
             : keyCoords['walls'].includes(coordString) ? '#'
             : '.';
 
-        while(nextVal === '[' || nextVal === ']') {
-            boxesToMove.push(nextVal === '[' ? nextCoord : boxStartCoord);
-            
-            nextCoord = step(nextCoord, move, GRID_LENGTH, GRID_HEIGHT);
-            coordString = JSON.stringify(nextCoord);
+        if (move === '^' || move === 'v') {
+            let row = nextCoord[0];
+            affectedCols.add(keyCoords['robot'][1]);
 
-            boxStartCoord = step(nextCoord, '<', GRID_LENGTH, GRID_HEIGHT);
-            boxStartCoordString = JSON.stringify(boxStartCoord);
+            const hitWall = false;
+            while(true) {
+                if (hitWall) break;
+                if (affectedCols.size === 0) break;
 
-            nextVal = 
-                keyCoords['boxes'].includes(coordString) ? '['
-                : keyCoords['boxes'].includes(boxStartCoordString) ? ']'
-                : keyCoords['walls'].includes(coordString) ? '#'
-                : '.';
-        }
+                row = nextCoord[0];
+                console.log(moveIdx, move, row, affectedCols, boxesToMove, keyCoords['robot']);
 
-        // console.log(move, nextVal, boxesToMove, keyCoords['robot'])
-        // Robot is pushing against a wall, do nothing.
-        if (nextVal === '#') {
-            return;
-        }
+                affectedCols.forEach(col => {
+                    coordString = JSON.stringify([row, col]);
+                    val = keyCoords['boxes'].includes(coordString) ? '['
+                        : keyCoords['boxes'].includes(boxStartCoordString) ? ']'
+                        : keyCoords['walls'].includes(coordString) ? '#'
+                        : '.';
 
-        // Robot is pushing towards an empty space, move itself + boxes.
-        if (nextVal === '.') {
-            // Remove duplicated boxes
-            boxesToMove = boxesToMove.map(coord => JSON.stringify(coord));
-            tmp = new Set(boxesToMove);
-            boxesToMove = Array.from(tmp).map(coord => JSON.parse(coord));
+                    console.log(col, val, affectedCols);
+                    
+                    if (val === '[' || val === ']') {
+                        boxesToMove.push(val === '[' ? nextCoord : boxStartCoord);
 
-            boxesToMove.forEach(coord => {
-                boxIdx = keyCoords['boxes'].indexOf(JSON.stringify(coord));
-                keyCoords['boxes'].splice(boxIdx, 1);
-                keyCoords['boxes'].push(JSON.stringify(step(coord, move, GRID_LENGTH, GRID_HEIGHT)));
-            })
+                        if (val === '[') { 
+                            [nextCoord[1], nextCoord[1]+1].forEach(nextAffectedCols.add, nextAffectedCols);
+                        } else if (val === ']') {
+                            [nextCoord[1], nextCoord[1]-1].forEach(nextAffectedCols.add, nextAffectedCols);
+                        }
+                    }
 
-            keyCoords['robot'] = step(keyCoords['robot'], move, GRID_LENGTH, GRID_HEIGHT);
+                    // If hit wall, all pushes are ignored.
+                    if (val === '#') {
+                        hitWall = true;
+                    }
+
+                    if (val === '.') {
+                        nextAffectedCols.delete(col);
+                    }
+                })
+
+                nextCoord = step(nextCoord, move, GRID_LENGTH, GRID_HEIGHT);
+                affectedCols = new Set(nextAffectedCols);
+            }
+
+            if (!hitWall) {
+                // Remove duplicated boxes
+                boxesToMove = boxesToMove.map(coord => JSON.stringify(coord));
+                tmp = new Set(boxesToMove);
+                boxesToMove = Array.from(tmp).map(coord => JSON.parse(coord));
+    
+                boxesToMove.forEach(coord => {
+                    boxIdx = keyCoords['boxes'].indexOf(JSON.stringify(coord));
+                    keyCoords['boxes'].splice(boxIdx, 1);
+                    keyCoords['boxes'].push(JSON.stringify(step(coord, move, GRID_LENGTH, GRID_HEIGHT)));
+                })
+
+                keyCoords['robot'] = step(keyCoords['robot'], move, GRID_LENGTH, GRID_HEIGHT);
+            }
+        } else {
+            while(nextVal === '[' || nextVal === ']') {
+                boxesToMove.push(nextVal === '[' ? nextCoord : boxStartCoord);
+                
+                nextCoord = step(nextCoord, move, GRID_LENGTH, GRID_HEIGHT);
+                coordString = JSON.stringify(nextCoord);
+    
+                boxStartCoord = step(nextCoord, '<', GRID_LENGTH, GRID_HEIGHT);
+                boxStartCoordString = JSON.stringify(boxStartCoord);
+    
+                nextVal = 
+                    keyCoords['boxes'].includes(coordString) ? '['
+                    : keyCoords['boxes'].includes(boxStartCoordString) ? ']'
+                    : keyCoords['walls'].includes(coordString) ? '#'
+                    : '.';
+            }
+    
+            // console.log(move, nextVal, boxesToMove, keyCoords['robot'])
+            // Robot is pushing against a wall, do nothing.
+            if (nextVal === '#') {
+                return;
+            }
+    
+            // Robot is pushing towards an empty space, move itself + boxes.
+            if (nextVal === '.') {
+                // Remove duplicated boxes
+                boxesToMove = boxesToMove.map(coord => JSON.stringify(coord));
+                tmp = new Set(boxesToMove);
+                boxesToMove = Array.from(tmp).map(coord => JSON.parse(coord));
+    
+                boxesToMove.forEach(coord => {
+                    boxIdx = keyCoords['boxes'].indexOf(JSON.stringify(coord));
+                    keyCoords['boxes'].splice(boxIdx, 1);
+                    keyCoords['boxes'].push(JSON.stringify(step(coord, move, GRID_LENGTH, GRID_HEIGHT)));
+                })
+    
+                keyCoords['robot'] = step(keyCoords['robot'], move, GRID_LENGTH, GRID_HEIGHT);
+            }
         }
 
         console.log(move, keyCoords.boxes, keyCoords.robot);
