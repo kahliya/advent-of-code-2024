@@ -44,34 +44,40 @@ const processMoves = (moves, keyCoords) => {
             : keyCoords['walls'].includes(coordString) ? '#'
             : '.';
 
+        // console.log('=====')
+
         if (move === '^' || move === 'v') {
             let row = nextCoord[0];
             affectedCols.add(keyCoords['robot'][1]);
 
-            const hitWall = false;
+            let hitWall = false;
             while(true) {
+                // console.log("affected Cols |", affectedCols);
+
                 if (hitWall) break;
                 if (affectedCols.size === 0) break;
 
                 row = nextCoord[0];
-                console.log(moveIdx, move, row, affectedCols, boxesToMove, keyCoords['robot']);
+                // console.log("check this:", moveIdx, move, row, boxesToMove, keyCoords['robot']);
 
                 affectedCols.forEach(col => {
                     coordString = JSON.stringify([row, col]);
+                    boxStartCoordString = JSON.stringify([row, col-1]);
+                    // console.log("Checking coord:", coordString);
                     val = keyCoords['boxes'].includes(coordString) ? '['
                         : keyCoords['boxes'].includes(boxStartCoordString) ? ']'
                         : keyCoords['walls'].includes(coordString) ? '#'
                         : '.';
 
-                    console.log(col, val, affectedCols);
+                    // console.log("col: ", col, "val: ", val);
                     
                     if (val === '[' || val === ']') {
-                        boxesToMove.push(val === '[' ? nextCoord : boxStartCoord);
+                        boxesToMove.push(val === '[' ? [row, col] : [row, col-1]);
 
                         if (val === '[') { 
-                            [nextCoord[1], nextCoord[1]+1].forEach(nextAffectedCols.add, nextAffectedCols);
+                            [col, col+1].forEach(nextAffectedCols.add, nextAffectedCols);
                         } else if (val === ']') {
-                            [nextCoord[1], nextCoord[1]-1].forEach(nextAffectedCols.add, nextAffectedCols);
+                            [col, col-1].forEach(nextAffectedCols.add, nextAffectedCols);
                         }
                     }
 
@@ -143,7 +149,7 @@ const processMoves = (moves, keyCoords) => {
             }
         }
 
-        console.log(move, keyCoords.boxes, keyCoords.robot);
+        // console.log(move, keyCoords.boxes, keyCoords.robot);
     })
 }
 
@@ -152,7 +158,7 @@ const calculateGPS = (boxes) => {
     return boxes.reduce((a, b) => a + 100*b[0] + b[1], 0);
 }
 
-const input = readFile('input4.txt');
+const input = readFile('input.txt');
 // console.log(input);
 
 let [grid, moves] = parseInput(input);
