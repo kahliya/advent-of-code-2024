@@ -68,12 +68,12 @@ const traverseGraph = (currPos, currDirection, params, score) => {
     const rightDirection = clockwiseTurn(currDirection);
     const rightPos = step(currPos, rightDirection);
 
-    traverseGraph(fwdPos, currDirection, params, score+1);
     traverseGraph(leftPos, leftDirection, params, score+1001);
     traverseGraph(rightPos, rightDirection, params, score+1001)
+    traverseGraph(fwdPos, currDirection, params, score+1);
 }
 
-const input = readFile('input2.txt');
+const input = readFile('input.txt');
 const params = parseInput(input);
 // console.log(params);
 
@@ -82,3 +82,10 @@ const MAX_LENGTH = params.grid[0].length-1;
 const knownCosts = {};
 traverseGraph(params.start, '>', params, 0);
 console.log(knownCosts[JSON.stringify(params.end)]);
+
+// BUG: When calculating scores, the score (before turning/moving is taken when comparing to the previous score)
+// See input5.txt for a sample
+// @ [0,3], when taking the shorter route, the score via the shorter route is 4019
+
+// FIX: For recursion, traverse the turns before the forward route
+// I guess it works don't ask me how.
